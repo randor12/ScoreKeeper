@@ -11,3 +11,35 @@ export interface ScoreHistoryPoint {
   score: number;
   fill: string;
 }
+
+// Spades Types
+export interface SpadesPlayer {
+  id: string;
+  name: string;
+}
+
+export interface SpadesTeam {
+  id: number;
+  players: [SpadesPlayer, SpadesPlayer];
+  score: number;
+  bags: number;
+}
+
+export interface SpadesRound {
+  id: string;
+  roundNumber: number;
+  team1: {
+    bids: [number, number]; // 0 denotes Nil
+    tricks: number;
+    scoreDelta: number;
+    nilFailed: [boolean, boolean];
+    bagsDelta: number;
+  };
+  team2: {
+    bids: [number, number]; // 0 denotes Nil
+    tricks: number;
+    scoreDelta: number;
+    nilFailed: [boolean, boolean];
+    bagsDelta: number;
+  };
+}

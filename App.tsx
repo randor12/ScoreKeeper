@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, RotateCcw, Users, RefreshCw } from 'lucide-react';
+import { PlusCircle, RotateCcw, Users, RefreshCw, LayoutGrid, Spade } from 'lucide-react';
 import PlayerCard from './components/PlayerCard';
 import ScoreChart from './components/ScoreChart';
+import SpadesGame from './components/SpadesGame';
 import { Player } from './types';
 
 // Helper to generate IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const App: React.FC = () => {
+  // Game Mode State
+  const [gameMode, setGameMode] = useState<'standard' | 'spades'>('standard');
+
+  // STANDARD MODE STATE
   // Initialize with the requirement: 1 unnamed person that needs to be entered first.
   const [players, setPlayers] = useState<Player[]>([
     { id: generateId(), name: '', score: 0, tieBreakerOrder: 0, isEditing: true }
@@ -91,7 +96,6 @@ const App: React.FC = () => {
     });
   };
 
-  // Requirement: Clear button that makes everything go back to 0 and 1 unnamed person
   const handleHardReset = () => {
     // Direct action without confirm to avoid blocking issues
     const initialPlayer = { id: generateId(), name: '', score: 0, tieBreakerOrder: 0, isEditing: true };
@@ -144,111 +148,138 @@ const App: React.FC = () => {
           <p className="text-slate-400 text-sm">Simple, fast score tracking</p>
         </div>
         
-        <div className="flex gap-2">
-          <button 
-            type="button"
-            onClick={handleScoreReset}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors border border-slate-700 active:bg-slate-600"
+        {/* Mode Toggle */}
+        <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
+          <button
+            onClick={() => setGameMode('standard')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              gameMode === 'standard' 
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'text-slate-400 hover:text-white'
+            }`}
           >
-            <RefreshCw size={16} />
-            Reset Scores
+            <LayoutGrid size={16} /> Standard
           </button>
-          <button 
-            type="button"
-            onClick={handleHardReset}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm font-medium transition-colors border border-red-500/20 active:bg-red-500/30"
+          <button
+            onClick={() => setGameMode('spades')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              gameMode === 'spades' 
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'text-slate-400 hover:text-white'
+            }`}
           >
-            <RotateCcw size={16} />
-            Full Reset
+            <Spade size={16} /> Spades
           </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content: Player List */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Quick Add Form */}
-          <form onSubmit={addPlayer} className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Users className="h-5 w-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+      {/* Mode Content */}
+      {gameMode === 'spades' ? (
+        <SpadesGame />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">
+          {/* Main Content: Player List */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Quick Add Form */}
+            <form onSubmit={addPlayer} className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Users className="h-5 w-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+              </div>
+              <input
+                type="text"
+                value={newPlayerName}
+                onChange={(e) => setNewPlayerName(e.target.value)}
+                placeholder="Add another player..."
+                className="block w-full pl-10 pr-12 py-3 border border-slate-700 rounded-xl leading-5 bg-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-shadow"
+              />
+              <button 
+                type="submit"
+                className="absolute inset-y-1 right-1 flex items-center px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
+              >
+                <PlusCircle size={18} />
+              </button>
+            </form>
+
+            <div className="flex justify-end gap-2">
+              <button 
+                type="button"
+                onClick={handleScoreReset}
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-700 active:bg-slate-600"
+              >
+                <RefreshCw size={14} />
+                Reset Scores
+              </button>
+              <button 
+                type="button"
+                onClick={handleHardReset}
+                className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs font-medium transition-colors border border-red-500/20 active:bg-red-500/30"
+              >
+                <RotateCcw size={14} />
+                Full Reset
+              </button>
             </div>
-            <input
-              type="text"
-              value={newPlayerName}
-              onChange={(e) => setNewPlayerName(e.target.value)}
-              placeholder="Add another player..."
-              className="block w-full pl-10 pr-12 py-3 border border-slate-700 rounded-xl leading-5 bg-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-shadow"
-            />
-            <button 
-              type="submit"
-              className="absolute inset-y-1 right-1 flex items-center px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
-            >
-              <PlusCircle size={18} />
-            </button>
-          </form>
 
-          {/* Player Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {sortedPlayers.map((player, index) => {
-              // Calculate points behind
-              const diffToFirst = index > 0 ? sortedPlayers[0].score - player.score : undefined;
-              const diffToNext = index > 0 ? sortedPlayers[index - 1].score - player.score : undefined;
-              
-              // Tie breaker checks
-              const canMoveUp = index > 0 && sortedPlayers[index - 1].score === player.score;
-              const canMoveDown = index < sortedPlayers.length - 1 && sortedPlayers[index + 1].score === player.score;
+            {/* Player Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {sortedPlayers.map((player, index) => {
+                const diffToFirst = index > 0 ? sortedPlayers[0].score - player.score : undefined;
+                const diffToNext = index > 0 ? sortedPlayers[index - 1].score - player.score : undefined;
+                
+                const canMoveUp = index > 0 && sortedPlayers[index - 1].score === player.score;
+                const canMoveDown = index < sortedPlayers.length - 1 && sortedPlayers[index + 1].score === player.score;
 
-              return (
-                <PlayerCard
-                  key={player.id}
-                  player={player}
-                  rank={index + 1}
-                  diffToFirst={diffToFirst}
-                  diffToNext={diffToNext}
-                  onUpdateScore={updateScore}
-                  onSetScore={setPlayerScore}
-                  onUpdateName={updateName}
-                  onToggleEdit={toggleEdit}
-                  onDelete={deletePlayer}
-                  onMove={movePlayer}
-                  canMoveUp={canMoveUp}
-                  canMoveDown={canMoveDown}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Sidebar: Stats */}
-        <div className="space-y-6">
-          <ScoreChart players={players} />
-          
-          <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-            <h3 className="text-slate-100 font-semibold mb-2">Game Summary</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Total Players</span>
-                <span className="text-slate-200">{players.length}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Total Points</span>
-                <span className="text-slate-200">
-                  {players.reduce((acc, curr) => acc + curr.score, 0)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Average Score</span>
-                <span className="text-slate-200">
-                  {players.length > 0 
-                    ? Math.round(players.reduce((acc, curr) => acc + curr.score, 0) / players.length) 
-                    : 0}
-                </span>
-              </div>
+                return (
+                  <PlayerCard
+                    key={player.id}
+                    player={player}
+                    rank={index + 1}
+                    diffToFirst={diffToFirst}
+                    diffToNext={diffToNext}
+                    onUpdateScore={updateScore}
+                    onSetScore={setPlayerScore}
+                    onUpdateName={updateName}
+                    onToggleEdit={toggleEdit}
+                    onDelete={deletePlayer}
+                    onMove={movePlayer}
+                    canMoveUp={canMoveUp}
+                    canMoveDown={canMoveDown}
+                  />
+                );
+              })}
             </div>
           </div>
+
+          {/* Sidebar: Stats */}
+          <div className="space-y-6">
+            <ScoreChart players={players} />
+            
+            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+              <h3 className="text-slate-100 font-semibold mb-2">Game Summary</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Total Players</span>
+                  <span className="text-slate-200">{players.length}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Total Points</span>
+                  <span className="text-slate-200">
+                    {players.reduce((acc, curr) => acc + curr.score, 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Average Score</span>
+                  <span className="text-slate-200">
+                    {players.length > 0 
+                      ? Math.round(players.reduce((acc, curr) => acc + curr.score, 0) / players.length) 
+                      : 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
