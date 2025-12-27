@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Minus, Trash2, Edit2, Check, User } from 'lucide-react';
+import { Plus, Minus, Trash2, Edit2, Check, User, TrendingDown } from 'lucide-react';
 import { Player } from '../types';
 
 interface PlayerCardProps {
@@ -10,6 +10,8 @@ interface PlayerCardProps {
   onDelete: (id: string) => void;
   onToggleEdit: (id: string) => void;
   rank: number;
+  diffToFirst?: number;
+  diffToNext?: number;
 }
 
 const PlayerCard: React.FC<PlayerCardProps> = ({ 
@@ -19,7 +21,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   onUpdateName, 
   onDelete, 
   onToggleEdit,
-  rank
+  rank,
+  diffToFirst,
+  diffToNext
 }) => {
   // Name Editing State
   const [tempName, setTempName] = useState(player.name);
@@ -146,7 +150,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
       </div>
 
       {/* Main Score Display (Direct Edit) */}
-      <div className="flex justify-center py-2">
+      <div className="flex justify-center py-2 flex-col items-center">
         {isEditingScore ? (
           <div className="flex items-center gap-2 w-full max-w-[200px]">
              <input
@@ -169,6 +173,22 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               {player.score.toLocaleString()}
              </span>
              <span className="text-xs uppercase tracking-widest text-slate-500 font-semibold mt-1 group-hover:text-indigo-400">Total Score</span>
+          </div>
+        )}
+        
+        {/* Points Behind Helpers */}
+        {rank > 1 && diffToFirst !== undefined && (
+          <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1">
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-red-400/90 bg-red-400/10 px-1.5 py-0.5 rounded uppercase tracking-wide">
+               <TrendingDown size={10} />
+               {diffToFirst} to 1st
+            </span>
+            {/* Only show 'to next' if we are rank 3 or below, otherwise next IS 1st */}
+            {rank > 2 && diffToNext !== undefined && diffToNext > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500">
+                -{diffToNext} to next
+              </span>
+            )}
           </div>
         )}
       </div>

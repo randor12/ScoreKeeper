@@ -153,18 +153,26 @@ const App: React.FC = () => {
 
           {/* Player Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {sortedPlayers.map((player, index) => (
-              <PlayerCard
-                key={player.id}
-                player={player}
-                rank={index + 1}
-                onUpdateScore={updateScore}
-                onSetScore={setPlayerScore}
-                onUpdateName={updateName}
-                onToggleEdit={toggleEdit}
-                onDelete={deletePlayer}
-              />
-            ))}
+            {sortedPlayers.map((player, index) => {
+              // Calculate points behind
+              const diffToFirst = index > 0 ? sortedPlayers[0].score - player.score : undefined;
+              const diffToNext = index > 0 ? sortedPlayers[index - 1].score - player.score : undefined;
+              
+              return (
+                <PlayerCard
+                  key={player.id}
+                  player={player}
+                  rank={index + 1}
+                  diffToFirst={diffToFirst}
+                  diffToNext={diffToNext}
+                  onUpdateScore={updateScore}
+                  onSetScore={setPlayerScore}
+                  onUpdateName={updateName}
+                  onToggleEdit={toggleEdit}
+                  onDelete={deletePlayer}
+                />
+              );
+            })}
           </div>
         </div>
 
