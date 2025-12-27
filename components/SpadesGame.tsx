@@ -1,22 +1,65 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Save, History, AlertCircle, Trash2, Edit3, X } from 'lucide-react';
+import { Trophy, Save, History, AlertCircle, Trash2, Edit3, X, Users, Settings } from 'lucide-react';
 import { SpadesTeam, SpadesRound } from '../types';
 
 interface SpadesGameProps {
   onBack?: () => void;
 }
 
+interface TeamNameInputsProps {
+  teams: [SpadesTeam, SpadesTeam];
+  onUpdateName: (teamIdx: 0 | 1, playerIdx: 0 | 1, name: string) => void;
+}
+
+const TeamNameInputs: React.FC<TeamNameInputsProps> = ({ teams, onUpdateName }) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div className="space-y-4">
+      <h4 className="text-indigo-400 font-bold uppercase tracking-wider text-sm">Team 1</h4>
+      <input 
+        value={teams[0].players[0].name}
+        onChange={(e) => onUpdateName(0, 0, e.target.value)}
+        placeholder="Player 1 Name"
+        className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-indigo-500 outline-none"
+        autoFocus // Helper for initial focus if needed, but not strictly required
+      />
+      <input 
+        value={teams[0].players[1].name}
+        onChange={(e) => onUpdateName(0, 1, e.target.value)}
+        placeholder="Player 2 Name"
+        className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-indigo-500 outline-none"
+      />
+    </div>
+    <div className="space-y-4">
+      <h4 className="text-cyan-400 font-bold uppercase tracking-wider text-sm">Team 2</h4>
+      <input 
+        value={teams[1].players[0].name}
+        onChange={(e) => onUpdateName(1, 0, e.target.value)}
+        placeholder="Player 3 Name"
+        className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
+      />
+      <input 
+        value={teams[1].players[1].name}
+        onChange={(e) => onUpdateName(1, 1, e.target.value)}
+        placeholder="Player 4 Name"
+        className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
+      />
+    </div>
+  </div>
+);
+
 const SpadesGame: React.FC<SpadesGameProps> = () => {
   // Game State
   const [teams, setTeams] = useState<[SpadesTeam, SpadesTeam]>([
-    { id: 1, players: [{ id: 'p1', name: 'Player 1' }, { id: 'p2', name: 'Player 2' }], score: 0, bags: 0 },
-    { id: 2, players: [{ id: 'p3', name: 'Player 3' }, { id: 'p4', name: 'Player 4' }], score: 0, bags: 0 }
+    { id: 1, players: [{ id: 'p1', name: '' }, { id: 'p2', name: '' }], score: 0, bags: 0 },
+    { id: 2, players: [{ id: 'p3', name: '' }, { id: 'p4', name: '' }], score: 0, bags: 0 }
   ]);
   const [history, setHistory] = useState<SpadesRound[]>([]);
   const [isSetup, setIsSetup] = useState(true);
 
   // Round Input State
   const [isRoundModalOpen, setIsRoundModalOpen] = useState(false);
+  const [isNameEditModalOpen, setIsNameEditModalOpen] = useState(false);
+  
   const [t1Bids, setT1Bids] = useState<[string, string]>(['0', '0']);
   const [t2Bids, setT2Bids] = useState<[string, string]>(['0', '0']);
   const [t1Tricks, setT1Tricks] = useState<string>('');
@@ -33,7 +76,16 @@ const SpadesGame: React.FC<SpadesGameProps> = () => {
         if (parsed.teams && parsed.history) {
           setTeams(parsed.teams);
           setHistory(parsed.history);
-          setIsSetup(parsed.history.length === 0 && parsed.teams[0].score === 0);
+          // Determine if we are in setup mode or game mode
+          if (parsed.history.length > 0 || parsed.teams.some((t: SpadesTeam) => t.score !== 0)) {
+             setIsSetup(false);
+          } else {
+             // If data exists but seems fresh (score 0, no history), check names
+             // If names are empty, it's definitely setup. If names are set, it might be a game that just started.
+             // We'll assume if names are set, the user likely passed setup.
+             const hasNames = parsed.teams[0].players[0].name !== '' || parsed.teams[1].players[0].name !== '';
+             setIsSetup(!hasNames); 
+          }
         }
       } catch (e) {
         console.error("Failed to load spades data", e);
@@ -103,14 +155,10 @@ const SpadesGame: React.FC<SpadesGameProps> = () => {
       }
 
       // 3. Handle Bag Penalty (10 bags = -100)
-      // Note: We apply this to the team state, but we record the delta here.
-      // We check if (currentBags + bagsDelta) >= 10
       let newBagsTotal = currentBags + bagsDelta;
       if (newBagsTotal >= 10) {
         scoreDelta -= 100;
         newBagsTotal -= 10;
-        // The bagsDelta stored in history is just the raw bags added this round.
-        // The effective bags reduction happens in the state update.
       }
 
       return { scoreDelta, bagsDelta, newBagsTotal };
@@ -155,13 +203,16 @@ const SpadesGame: React.FC<SpadesGameProps> = () => {
   };
 
   const handleReset = () => {
-    if (confirm("Are you sure you want to reset the game? This will clear all history.")) {
+    if (confirm("Are you sure you want to fully reset Spades Mode? This will clear all scores, history, and team names.")) {
+      // Reset to default initial state with empty names
       setTeams([
-        { ...teams[0], score: 0, bags: 0 },
-        { ...teams[1], score: 0, bags: 0 }
+        { id: 1, players: [{ id: 'p1', name: '' }, { id: 'p2', name: '' }], score: 0, bags: 0 },
+        { id: 2, players: [{ id: 'p3', name: '' }, { id: 'p4', name: '' }], score: 0, bags: 0 }
       ]);
       setHistory([]);
       setIsSetup(true);
+      // Explicitly clear storage to ensure no ghost data persists if component unmounts quickly
+      localStorage.removeItem('scorekeepr_spades_data');
     }
   };
 
@@ -169,52 +220,6 @@ const SpadesGame: React.FC<SpadesGameProps> = () => {
     const roundToDelete = history.find(r => r.id === roundId);
     if (!roundToDelete) return;
 
-    // Reverse the score changes
-    // Note: Reversing bag penalties is tricky if we don't store exactly when they happened.
-    // For simplicity, we just subtract the scoreDelta and bagsDelta. 
-    // If a bag penalty occurred, it was baked into scoreDelta.
-    // However, recreating the "bags < 10" state is hard.
-    // A robust system would rebuild state from history. Let's do that.
-    
-    const newHistory = history.filter(r => r.id !== roundId).sort((a, b) => a.roundNumber - b.roundNumber);
-    
-    // Replay history to get current state
-    let t1Score = 0;
-    let t1Bags = 0;
-    let t2Score = 0;
-    let t2Bags = 0;
-
-    // Helper to process a round for replay (re-using logic simplified)
-    const processTeamStats = (currentScore: number, currentBags: number, scoreDelta: number, bagsDelta: number) => {
-      let s = currentScore + scoreDelta;
-      let b = currentBags + bagsDelta;
-      // We need to infer if a bag penalty happened. 
-      // Actually, since we stored the *result* scoreDelta including penalty in the round object, 
-      // we just sum the deltas.
-      // But we need to handle the bag wrapping logic for display.
-      // Let's assume the stored history is the source of truth for score changes.
-      // For bags, we need to handle the modulo 10 logic.
-      if (b >= 10) b -= 10;
-      return { s, b };
-    };
-
-    // Re-calculate everything from scratch based on remaining history
-    // This requires us to NOT use the stored deltas if we want to change past history, 
-    // but here we are just deleting.
-    // If we delete a round that caused a bag penalty, we need to remove that penalty.
-    // To do this strictly correct, we should store raw inputs and re-calculate.
-    // BUT for this app, we will just subtract the values stored in the round.
-    
-    // Heuristic fix for bag penalty reversal:
-    // If scoreDelta had a -100 component and bags wrapped... it's complex.
-    // Let's just do a simple subtract for now, acknowledging edge case with bag penalties.
-    // Or better: Rebuild from 0.
-    
-    // Actually, let's just reset to 0 and re-apply all history rounds.
-    // But we need the raw logic again. 
-    // Since we stored the *results* in history, we can't easily re-calculate "what if".
-    // We will just do a simple subtract and alert user it might be slightly off for bag penalties.
-    
     setTeams(prev => [
       { 
         ...prev[0], 
@@ -279,53 +284,36 @@ const SpadesGame: React.FC<SpadesGameProps> = () => {
             <p className="text-xs text-slate-400">First to 500 wins • 10 Bags = -100</p>
           </div>
         </div>
-        <button 
-          onClick={handleReset}
-          className="text-slate-400 hover:text-red-400 transition-colors p-2"
-          title="Reset Game"
-        >
-          <Trash2 size={20} />
-        </button>
+        
+        <div className="flex items-center gap-1">
+           {/* Edit Names Button (Visible in Game Mode) */}
+           {!isSetup && (
+            <button 
+              onClick={() => setIsNameEditModalOpen(true)}
+              className="text-slate-400 hover:text-indigo-400 transition-colors p-2 rounded hover:bg-slate-700/50"
+              title="Edit Team Names"
+            >
+              <Settings size={20} />
+            </button>
+          )}
+
+          <button 
+            onClick={handleReset}
+            className="text-slate-400 hover:text-red-400 transition-colors p-2 rounded hover:bg-slate-700/50"
+            title="Full Reset (Re-enter Teams)"
+          >
+            <Trash2 size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Setup View */}
       {isSetup && (
         <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Edit3 size={18} /> Team Setup
+            <Users size={18} /> Team Setup
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <h4 className="text-indigo-400 font-bold uppercase tracking-wider text-sm">Team 1</h4>
-              <input 
-                value={teams[0].players[0].name}
-                onChange={(e) => updateTeamName(0, 0, e.target.value)}
-                placeholder="Player 1 Name"
-                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-indigo-500 outline-none"
-              />
-              <input 
-                value={teams[0].players[1].name}
-                onChange={(e) => updateTeamName(0, 1, e.target.value)}
-                placeholder="Player 2 Name"
-                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-indigo-500 outline-none"
-              />
-            </div>
-            <div className="space-y-4">
-              <h4 className="text-cyan-400 font-bold uppercase tracking-wider text-sm">Team 2</h4>
-              <input 
-                value={teams[1].players[0].name}
-                onChange={(e) => updateTeamName(1, 0, e.target.value)}
-                placeholder="Player 3 Name"
-                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
-              />
-              <input 
-                value={teams[1].players[1].name}
-                onChange={(e) => updateTeamName(1, 1, e.target.value)}
-                placeholder="Player 4 Name"
-                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
-              />
-            </div>
-          </div>
+          <TeamNameInputs teams={teams} onUpdateName={updateTeamName} />
           <div className="mt-8 flex justify-center">
             <button 
               onClick={() => setIsSetup(false)}
@@ -333,6 +321,32 @@ const SpadesGame: React.FC<SpadesGameProps> = () => {
             >
               Start Game
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Name Edit Modal (Overlay) */}
+      {isNameEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-800 border border-slate-600 rounded-xl p-6 w-full max-w-2xl shadow-2xl relative">
+             <button 
+               onClick={() => setIsNameEditModalOpen(false)} 
+               className="absolute top-4 right-4 text-slate-400 hover:text-white"
+             >
+               <X size={24} />
+             </button>
+             <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <Edit3 size={20} /> Edit Team Names
+             </h3>
+             <TeamNameInputs teams={teams} onUpdateName={updateTeamName} />
+             <div className="mt-8 flex justify-end">
+                <button 
+                  onClick={() => setIsNameEditModalOpen(false)}
+                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold"
+                >
+                  Done
+                </button>
+             </div>
           </div>
         </div>
       )}
@@ -352,8 +366,11 @@ const SpadesGame: React.FC<SpadesGameProps> = () => {
                     : 'bg-slate-800/80 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'}
                 `}
               >
-                <div className="text-sm font-medium text-slate-400 mb-1">
-                  {team.players[0].name} & {team.players[1].name}
+                <div className="text-sm font-medium text-slate-400 mb-1 flex items-center gap-2">
+                   {/* Name display - Allow quick edit via header button, but here just display */}
+                   <span className="truncate max-w-[120px] sm:max-w-none">{team.players[0].name || 'P1'}</span> 
+                   <span className="opacity-50">&</span> 
+                   <span className="truncate max-w-[120px] sm:max-w-none">{team.players[1].name || 'P2'}</span>
                 </div>
                 <div className={`text-6xl font-bold font-mono tracking-tighter ${idx === 0 ? 'text-indigo-100' : 'text-cyan-100'}`}>
                   {team.score}
@@ -392,19 +409,19 @@ const SpadesGame: React.FC<SpadesGameProps> = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Team 1 Inputs */}
                 <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                  <div className="font-bold text-indigo-400 border-b border-indigo-500/20 pb-2 mb-2">
-                    {teams[0].players[0].name} & {teams[0].players[1].name}
+                  <div className="font-bold text-indigo-400 border-b border-indigo-500/20 pb-2 mb-2 truncate">
+                    {teams[0].players[0].name || 'P1'} & {teams[0].players[1].name || 'P2'}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     {renderBidInput(
-                      teams[0].players[0].name.split(' ')[0] + " Bid",
+                      (teams[0].players[0].name || 'P1').split(' ')[0] + " Bid",
                       t1Bids[0],
                       (v) => setT1Bids([v, t1Bids[1]]),
                       t1NilFailed[0],
                       () => setT1NilFailed([!t1NilFailed[0], t1NilFailed[1]])
                     )}
                     {renderBidInput(
-                      teams[0].players[1].name.split(' ')[0] + " Bid",
+                      (teams[0].players[1].name || 'P2').split(' ')[0] + " Bid",
                       t1Bids[1],
                       (v) => setT1Bids([t1Bids[0], v]),
                       t1NilFailed[1],
@@ -428,19 +445,19 @@ const SpadesGame: React.FC<SpadesGameProps> = () => {
 
                 {/* Team 2 Inputs */}
                 <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                  <div className="font-bold text-cyan-400 border-b border-cyan-500/20 pb-2 mb-2">
-                    {teams[1].players[0].name} & {teams[1].players[1].name}
+                  <div className="font-bold text-cyan-400 border-b border-cyan-500/20 pb-2 mb-2 truncate">
+                    {teams[1].players[0].name || 'P3'} & {teams[1].players[1].name || 'P4'}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     {renderBidInput(
-                      teams[1].players[0].name.split(' ')[0] + " Bid",
+                      (teams[1].players[0].name || 'P3').split(' ')[0] + " Bid",
                       t2Bids[0],
                       (v) => setT2Bids([v, t2Bids[1]]),
                       t2NilFailed[0],
                       () => setT2NilFailed([!t2NilFailed[0], t2NilFailed[1]])
                     )}
                     {renderBidInput(
-                      teams[1].players[1].name.split(' ')[0] + " Bid",
+                      (teams[1].players[1].name || 'P4').split(' ')[0] + " Bid",
                       t2Bids[1],
                       (v) => setT2Bids([t2Bids[0], v]),
                       t2NilFailed[1],
