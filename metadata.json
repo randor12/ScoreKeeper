@@ -1,0 +1,5 @@
+{
+  "name": "ScoreKeepr",
+  "description": "A dynamic scoreboard application to track player scores with visualization, persistence, and easy reset functionality.",
+  "requestFramePermissions": []
+}
