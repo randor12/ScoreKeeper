@@ -97,7 +97,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   };
 
   return (
-    <div className={`relative rounded-xl p-4 border transition-all duration-200 ${getRankColor(rank)} flex flex-col gap-4`}>
+    <div className={`relative rounded-xl p-4 border transition-all duration-200 ${getRankColor(rank)} flex flex-col gap-4 overflow-hidden`}>
       {/* Header: Rank, Name, Delete */}
       <div className="flex items-center justify-between gap-3">
         {/* Rank & Name */}
@@ -110,7 +110,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           </div>
 
           {player.isEditing ? (
-            <div className="flex-1 flex gap-2">
+            <div className="flex-1 flex gap-2 min-w-0">
               <input
                 ref={nameInputRef}
                 type="text"
@@ -119,9 +119,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 onKeyDown={handleNameKeyDown}
                 onBlur={handleNameSubmit}
                 placeholder="Enter Name..."
-                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-1 text-slate-100 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-1 text-slate-100 focus:outline-none focus:border-indigo-500 min-w-0"
               />
-              <button onClick={handleNameSubmit} className="p-1 bg-indigo-600 rounded text-white">
+              <button onClick={handleNameSubmit} className="p-1 bg-indigo-600 rounded text-white shrink-0">
                 <Check size={16} />
               </button>
             </div>
@@ -178,7 +178,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
         <button
           onClick={() => handleDelta(-1)}
           disabled={!deltaAmount}
-          className="w-12 rounded-lg bg-slate-700 hover:bg-red-500/20 text-slate-300 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-95"
+          className="shrink-0 w-12 rounded-lg bg-slate-700 hover:bg-red-500/20 text-slate-300 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-95"
         >
           <Minus size={24} />
         </button>
@@ -190,14 +190,14 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleDelta(1);
           }}
-          placeholder="Enter points..."
-          className="flex-1 bg-slate-900/50 border border-slate-700 rounded-lg px-4 text-center text-lg text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+          placeholder="Points..."
+          className="flex-1 min-w-0 bg-slate-900/50 border border-slate-700 rounded-lg px-2 text-center text-lg text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
         />
 
         <button
           onClick={() => handleDelta(1)}
           disabled={!deltaAmount}
-          className="w-12 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-95 shadow-lg shadow-indigo-900/20"
+          className="shrink-0 w-12 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-95 shadow-lg shadow-indigo-900/20"
         >
           <Plus size={24} />
         </button>
