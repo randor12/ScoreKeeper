@@ -10,7 +10,7 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 const App: React.FC = () => {
   // Initialize with the requirement: 1 unnamed person that needs to be entered first.
   const [players, setPlayers] = useState<Player[]>([
-    { id: generateId(), name: '', score: 0, isEditing: true }
+    { id: generateId(), name: '', score: 0, tieBreakerOrder: 0, isEditing: true }
   ]);
 
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -22,7 +22,12 @@ const App: React.FC = () => {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setPlayers(parsed);
+          // Migration: Ensure tieBreakerOrder exists for legacy data
+          const migratedData = parsed.map((p, index) => ({
+            ...p,
+            tieBreakerOrder: typeof p.tieBreakerOrder === 'number' ? p.tieBreakerOrder : index
+          }));
+          setPlayers(migratedData);
         }
       } catch (e) {
         console.error("Failed to load data", e);
@@ -40,7 +45,13 @@ const App: React.FC = () => {
     
     setPlayers(prev => [
       ...prev,
-      { id: generateId(), name: nameToAdd, score: 0, isEditing: false }
+      { 
+        id: generateId(), 
+        name: nameToAdd, 
+        score: 0, 
+        tieBreakerOrder: Date.now(), // Use timestamp for unique order
+        isEditing: false 
+      }
     ]);
     setNewPlayerName('');
   };
@@ -74,7 +85,7 @@ const App: React.FC = () => {
       const remaining = prev.filter(p => p.id !== id);
       if (remaining.length === 0) {
         // Enforce "1 unnamed person that needs to be entered first" rule if list becomes empty
-        return [{ id: generateId(), name: '', score: 0, isEditing: true }];
+        return [{ id: generateId(), name: '', score: 0, tieBreakerOrder: 0, isEditing: true }];
       }
       return remaining;
     });
@@ -83,7 +94,7 @@ const App: React.FC = () => {
   // Requirement: Clear button that makes everything go back to 0 and 1 unnamed person
   const handleHardReset = () => {
     // Direct action without confirm to avoid blocking issues
-    const initialPlayer = { id: generateId(), name: '', score: 0, isEditing: true };
+    const initialPlayer = { id: generateId(), name: '', score: 0, tieBreakerOrder: 0, isEditing: true };
     setPlayers([initialPlayer]);
     localStorage.removeItem('scorekeepr_data');
   };
@@ -93,8 +104,34 @@ const App: React.FC = () => {
     setPlayers(prev => prev.map(p => ({ ...p, score: 0 })));
   };
 
-  // Sort players for display (Highest score first)
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+  // Sort players for display (Highest score first, then tieBreakerOrder ascending)
+  const sortedPlayers = [...players].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    // Secondary sort: manual order (ascending)
+    return (a.tieBreakerOrder ?? 0) - (b.tieBreakerOrder ?? 0);
+  });
+
+  const movePlayer = (id: string, direction: 'up' | 'down') => {
+    const currentIndex = sortedPlayers.findIndex(p => p.id === id);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    // Check bounds
+    if (targetIndex < 0 || targetIndex >= sortedPlayers.length) return;
+
+    const currentPlayer = sortedPlayers[currentIndex];
+    const targetPlayer = sortedPlayers[targetIndex];
+
+    // Only allow moving if scores are tied
+    if (currentPlayer.score !== targetPlayer.score) return;
+
+    // Swap tieBreakerOrder
+    setPlayers(prev => prev.map(p => {
+      if (p.id === currentPlayer.id) return { ...p, tieBreakerOrder: targetPlayer.tieBreakerOrder };
+      if (p.id === targetPlayer.id) return { ...p, tieBreakerOrder: currentPlayer.tieBreakerOrder };
+      return p;
+    }));
+  };
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 pb-32">
@@ -158,6 +195,10 @@ const App: React.FC = () => {
               const diffToFirst = index > 0 ? sortedPlayers[0].score - player.score : undefined;
               const diffToNext = index > 0 ? sortedPlayers[index - 1].score - player.score : undefined;
               
+              // Tie breaker checks
+              const canMoveUp = index > 0 && sortedPlayers[index - 1].score === player.score;
+              const canMoveDown = index < sortedPlayers.length - 1 && sortedPlayers[index + 1].score === player.score;
+
               return (
                 <PlayerCard
                   key={player.id}
@@ -170,6 +211,9 @@ const App: React.FC = () => {
                   onUpdateName={updateName}
                   onToggleEdit={toggleEdit}
                   onDelete={deletePlayer}
+                  onMove={movePlayer}
+                  canMoveUp={canMoveUp}
+                  canMoveDown={canMoveDown}
                 />
               );
             })}

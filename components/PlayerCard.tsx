@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Minus, Trash2, Edit2, Check, User, TrendingDown } from 'lucide-react';
+import { Plus, Minus, Trash2, Edit2, Check, User, TrendingDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { Player } from '../types';
 
 interface PlayerCardProps {
@@ -9,9 +9,12 @@ interface PlayerCardProps {
   onUpdateName: (id: string, newName: string) => void;
   onDelete: (id: string) => void;
   onToggleEdit: (id: string) => void;
+  onMove?: (id: string, direction: 'up' | 'down') => void;
   rank: number;
   diffToFirst?: number;
   diffToNext?: number;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }
 
 const PlayerCard: React.FC<PlayerCardProps> = ({ 
@@ -21,9 +24,12 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   onUpdateName, 
   onDelete, 
   onToggleEdit,
+  onMove,
   rank,
   diffToFirst,
-  diffToNext
+  diffToNext,
+  canMoveUp,
+  canMoveDown
 }) => {
   // Name Editing State
   const [tempName, setTempName] = useState(player.name);
@@ -112,6 +118,28 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           `}>
             #{rank}
           </div>
+
+          {/* Tie Breaker Controls */}
+          {(canMoveUp || canMoveDown) && onMove && (
+            <div className="flex flex-col gap-0.5 shrink-0">
+              <button
+                disabled={!canMoveUp}
+                onClick={() => onMove(player.id, 'up')}
+                className={`text-slate-500 hover:text-indigo-400 disabled:opacity-0 disabled:pointer-events-none transition-colors p-0.5`}
+                title="Move Up (Tie Breaker)"
+              >
+                <ChevronUp size={14} strokeWidth={3} />
+              </button>
+              <button
+                disabled={!canMoveDown}
+                onClick={() => onMove(player.id, 'down')}
+                className={`text-slate-500 hover:text-indigo-400 disabled:opacity-0 disabled:pointer-events-none transition-colors p-0.5`}
+                title="Move Down (Tie Breaker)"
+              >
+                <ChevronDown size={14} strokeWidth={3} />
+              </button>
+            </div>
+          )}
 
           {player.isEditing ? (
             <div className="flex-1 flex gap-2 min-w-0">
