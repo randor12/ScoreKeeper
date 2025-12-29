@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, RotateCcw, Users, RefreshCw, LayoutGrid, Spade } from 'lucide-react';
+import { PlusCircle, RotateCcw, Users, RefreshCw, LayoutGrid, Spade, Target } from 'lucide-react';
 import PlayerCard from './components/PlayerCard';
 import ScoreChart from './components/ScoreChart';
 import SpadesGame from './components/SpadesGame';
@@ -17,8 +17,9 @@ const App: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>([
     { id: generateId(), name: '', score: 0, tieBreakerOrder: 0, isEditing: true }
   ]);
-
+  
   const [newPlayerName, setNewPlayerName] = useState('');
+  const [showBids, setShowBids] = useState(false);
 
   // Persist to LocalStorage
   useEffect(() => {
@@ -54,6 +55,7 @@ const App: React.FC = () => {
         id: generateId(), 
         name: nameToAdd, 
         score: 0, 
+        bid: undefined,
         tieBreakerOrder: Date.now(), // Use timestamp for unique order
         isEditing: false 
       }
@@ -70,6 +72,12 @@ const App: React.FC = () => {
   const setPlayerScore = (id: string, newScore: number) => {
     setPlayers(prev => prev.map(p => 
       p.id === id ? { ...p, score: newScore } : p
+    ));
+  };
+  
+  const updateBid = (id: string, bid: number | undefined) => {
+    setPlayers(prev => prev.map(p => 
+      p.id === id ? { ...p, bid: bid } : p
     ));
   };
 
@@ -100,12 +108,13 @@ const App: React.FC = () => {
     // Direct action without confirm to avoid blocking issues
     const initialPlayer = { id: generateId(), name: '', score: 0, tieBreakerOrder: 0, isEditing: true };
     setPlayers([initialPlayer]);
+    setShowBids(false);
     localStorage.removeItem('scorekeepr_data');
   };
 
   const handleScoreReset = () => {
      // Direct action without confirm to avoid blocking issues
-    setPlayers(prev => prev.map(p => ({ ...p, score: 0 })));
+    setPlayers(prev => prev.map(p => ({ ...p, score: 0, bid: undefined })));
   };
 
   // Sort players for display (Highest score first, then tieBreakerOrder ascending)
@@ -201,7 +210,20 @@ const App: React.FC = () => {
               </button>
             </form>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
+              <button 
+                type="button"
+                onClick={() => setShowBids(!showBids)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                  showBids 
+                    ? 'bg-indigo-600 text-white border-indigo-500' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                }`}
+              >
+                <Target size={14} />
+                {showBids ? 'Hide Bids' : 'Show Bids'}
+              </button>
+              <div className="w-px h-6 bg-slate-700 mx-1"></div>
               <button 
                 type="button"
                 onClick={handleScoreReset}
@@ -244,6 +266,8 @@ const App: React.FC = () => {
                     onMove={movePlayer}
                     canMoveUp={canMoveUp}
                     canMoveDown={canMoveDown}
+                    showBid={showBids}
+                    onUpdateBid={updateBid}
                   />
                 );
               })}

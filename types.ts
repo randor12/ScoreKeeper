@@ -2,6 +2,7 @@ export interface Player {
   id: string;
   name: string;
   score: number;
+  bid?: number; // Optional bid for standard mode
   tieBreakerOrder: number; // Used to sort players with the same score
   isEditing?: boolean; // UI state to determine if we are editing the name
 }

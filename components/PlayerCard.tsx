@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Minus, Trash2, Edit2, Check, User, TrendingDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Minus, Trash2, Edit2, Check, User, TrendingDown, ChevronUp, ChevronDown, Target } from 'lucide-react';
 import { Player } from '../types';
 
 interface PlayerCardProps {
@@ -10,6 +10,8 @@ interface PlayerCardProps {
   onDelete: (id: string) => void;
   onToggleEdit: (id: string) => void;
   onMove?: (id: string, direction: 'up' | 'down') => void;
+  onUpdateBid?: (id: string, bid: number | undefined) => void;
+  showBid?: boolean;
   rank: number;
   diffToFirst?: number;
   diffToNext?: number;
@@ -25,6 +27,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   onDelete, 
   onToggleEdit,
   onMove,
+  onUpdateBid,
+  showBid = false,
   rank,
   diffToFirst,
   diffToNext,
@@ -220,6 +224,24 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Optional Bidding Interface */}
+      {showBid && onUpdateBid && (
+        <div className="flex justify-center mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2 bg-slate-900/40 rounded-lg px-3 py-1.5 border border-slate-700/50">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <Target size={12} /> Bid
+            </span>
+            <input
+              type="number"
+              value={player.bid !== undefined ? player.bid : ''}
+              onChange={(e) => onUpdateBid(player.id, e.target.value === '' ? undefined : parseInt(e.target.value))}
+              placeholder="-"
+              className="w-12 bg-transparent text-center font-mono font-bold text-indigo-400 focus:outline-none focus:text-indigo-300 border-b border-indigo-500/30 focus:border-indigo-500 transition-all"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Action Bar: Input and +/- Buttons */}
       <div className="flex gap-2">
