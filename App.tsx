@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, RotateCcw, Users, RefreshCw, LayoutGrid, Spade, Target } from 'lucide-react';
+import { PlusCircle, RotateCcw, Users, RefreshCw, LayoutGrid, Spade, Target, ArrowUpDown } from 'lucide-react';
 import PlayerCard from './components/PlayerCard';
 import ScoreChart from './components/ScoreChart';
 import SpadesGame from './components/SpadesGame';
@@ -17,9 +17,10 @@ const App: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>([
     { id: generateId(), name: '', score: 0, tieBreakerOrder: 0, isEditing: true }
   ]);
-  
+
   const [newPlayerName, setNewPlayerName] = useState('');
   const [showBids, setShowBids] = useState(false);
+  const [lowScoreWins, setLowScoreWins] = useState(false);
 
   // Persist to LocalStorage
   useEffect(() => {
@@ -45,50 +46,69 @@ const App: React.FC = () => {
     localStorage.setItem('scorekeepr_data', JSON.stringify(players));
   }, [players]);
 
+  // Settings Persistence
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('scorekeepr_settings');
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        if (typeof parsed.lowScoreWins === 'boolean') {
+          setLowScoreWins(parsed.lowScoreWins);
+        }
+      } catch (e) {
+        console.error("Failed to load settings", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('scorekeepr_settings', JSON.stringify({ lowScoreWins }));
+  }, [lowScoreWins]);
+
   const addPlayer = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const nameToAdd = newPlayerName.trim() || `Player ${players.length + 1}`;
-    
+
     setPlayers(prev => [
       ...prev,
-      { 
-        id: generateId(), 
-        name: nameToAdd, 
-        score: 0, 
+      {
+        id: generateId(),
+        name: nameToAdd,
+        score: 0,
         bid: undefined,
         tieBreakerOrder: Date.now(), // Use timestamp for unique order
-        isEditing: false 
+        isEditing: false
       }
     ]);
     setNewPlayerName('');
   };
 
   const updateScore = (id: string, delta: number) => {
-    setPlayers(prev => prev.map(p => 
+    setPlayers(prev => prev.map(p =>
       p.id === id ? { ...p, score: p.score + delta } : p
     ));
   };
 
   const setPlayerScore = (id: string, newScore: number) => {
-    setPlayers(prev => prev.map(p => 
+    setPlayers(prev => prev.map(p =>
       p.id === id ? { ...p, score: newScore } : p
     ));
   };
-  
+
   const updateBid = (id: string, bid: number | undefined) => {
-    setPlayers(prev => prev.map(p => 
+    setPlayers(prev => prev.map(p =>
       p.id === id ? { ...p, bid: bid } : p
     ));
   };
 
   const updateName = (id: string, newName: string) => {
-    setPlayers(prev => prev.map(p => 
+    setPlayers(prev => prev.map(p =>
       p.id === id ? { ...p, name: newName, isEditing: false } : p
     ));
   };
 
   const toggleEdit = (id: string) => {
-    setPlayers(prev => prev.map(p => 
+    setPlayers(prev => prev.map(p =>
       p.id === id ? { ...p, isEditing: !p.isEditing } : p
     ));
   };
@@ -113,13 +133,15 @@ const App: React.FC = () => {
   };
 
   const handleScoreReset = () => {
-     // Direct action without confirm to avoid blocking issues
+    // Direct action without confirm to avoid blocking issues
     setPlayers(prev => prev.map(p => ({ ...p, score: 0, bid: undefined })));
   };
 
   // Sort players for display (Highest score first, then tieBreakerOrder ascending)
   const sortedPlayers = [...players].sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
+    if (b.score !== a.score) {
+      return lowScoreWins ? a.score - b.score : b.score - a.score;
+    }
     // Secondary sort: manual order (ascending)
     return (a.tieBreakerOrder ?? 0) - (b.tieBreakerOrder ?? 0);
   });
@@ -156,26 +178,24 @@ const App: React.FC = () => {
           </h1>
           <p className="text-slate-400 text-sm">Simple, fast score tracking</p>
         </div>
-        
+
         {/* Mode Toggle */}
         <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
           <button
             onClick={() => setGameMode('standard')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-              gameMode === 'standard' 
-                ? 'bg-indigo-600 text-white shadow-md' 
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${gameMode === 'standard'
+                ? 'bg-indigo-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white'
-            }`}
+              }`}
           >
             <LayoutGrid size={16} /> Standard
           </button>
           <button
             onClick={() => setGameMode('spades')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-              gameMode === 'spades' 
-                ? 'bg-indigo-600 text-white shadow-md' 
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${gameMode === 'spades'
+                ? 'bg-indigo-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white'
-            }`}
+              }`}
           >
             <Spade size={16} /> Spades
           </button>
@@ -189,7 +209,7 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">
           {/* Main Content: Player List */}
           <div className="lg:col-span-2 space-y-6">
-            
+
             {/* Quick Add Form */}
             <form onSubmit={addPlayer} className="relative group">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -202,7 +222,7 @@ const App: React.FC = () => {
                 placeholder="Add another player..."
                 className="block w-full pl-10 pr-12 py-3 border border-slate-700 rounded-xl leading-5 bg-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-shadow"
               />
-              <button 
+              <button
                 type="submit"
                 className="absolute inset-y-1 right-1 flex items-center px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
               >
@@ -211,20 +231,30 @@ const App: React.FC = () => {
             </form>
 
             <div className="flex flex-wrap justify-end gap-2">
-              <button 
+              <button
                 type="button"
                 onClick={() => setShowBids(!showBids)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
-                  showBids 
-                    ? 'bg-indigo-600 text-white border-indigo-500' 
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${showBids
+                    ? 'bg-indigo-600 text-white border-indigo-500'
                     : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                }`}
+                  }`}
               >
                 <Target size={14} />
                 {showBids ? 'Hide Bids' : 'Show Bids'}
               </button>
+              <button
+                type="button"
+                onClick={() => setLowScoreWins(!lowScoreWins)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${lowScoreWins
+                    ? 'bg-indigo-600 text-white border-indigo-500'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                  }`}
+              >
+                <ArrowUpDown size={14} />
+                {lowScoreWins ? 'Low Wins' : 'High Wins'}
+              </button>
               <div className="w-px h-6 bg-slate-700 mx-1"></div>
-              <button 
+              <button
                 type="button"
                 onClick={handleScoreReset}
                 className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-700 active:bg-slate-600"
@@ -232,7 +262,7 @@ const App: React.FC = () => {
                 <RefreshCw size={14} />
                 Reset Scores
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={handleHardReset}
                 className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs font-medium transition-colors border border-red-500/20 active:bg-red-500/30"
@@ -245,9 +275,18 @@ const App: React.FC = () => {
             {/* Player Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {sortedPlayers.map((player, index) => {
-                const diffToFirst = index > 0 ? sortedPlayers[0].score - player.score : undefined;
-                const diffToNext = index > 0 ? sortedPlayers[index - 1].score - player.score : undefined;
-                
+                const diffToFirst = index > 0
+                  ? (lowScoreWins
+                    ? player.score - sortedPlayers[0].score
+                    : sortedPlayers[0].score - player.score)
+                  : undefined;
+
+                const diffToNext = index > 0
+                  ? (lowScoreWins
+                    ? player.score - sortedPlayers[index - 1].score
+                    : sortedPlayers[index - 1].score - player.score)
+                  : undefined;
+
                 const canMoveUp = index > 0 && sortedPlayers[index - 1].score === player.score;
                 const canMoveDown = index < sortedPlayers.length - 1 && sortedPlayers[index + 1].score === player.score;
 
@@ -277,7 +316,7 @@ const App: React.FC = () => {
           {/* Sidebar: Stats */}
           <div className="space-y-6">
             <ScoreChart players={players} />
-            
+
             <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
               <h3 className="text-slate-100 font-semibold mb-2">Game Summary</h3>
               <div className="space-y-3">
@@ -294,8 +333,8 @@ const App: React.FC = () => {
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Average Score</span>
                   <span className="text-slate-200">
-                    {players.length > 0 
-                      ? Math.round(players.reduce((acc, curr) => acc + curr.score, 0) / players.length) 
+                    {players.length > 0
+                      ? Math.round(players.reduce((acc, curr) => acc + curr.score, 0) / players.length)
                       : 0}
                   </span>
                 </div>
